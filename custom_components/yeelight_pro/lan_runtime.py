@@ -243,7 +243,8 @@ class LanGatewayRuntime:
 
     async def _read_loop(self) -> None:
         """Read CRLF-delimited frames from the gateway."""
-        buffer = ""
+        buffer = b""
+        separator = LAN_FRAME_SEPARATOR.encode("utf-8")
         try:
             while self._health.running and self._reader is not None:
                 try:
@@ -257,12 +258,13 @@ class LanGatewayRuntime:
                 if not data:
                     _LOGGER.debug("LAN gateway connection closed by peer")
                     break
-                buffer += data.decode("utf-8")
-                if LAN_FRAME_SEPARATOR not in buffer:
+                # TCP reads can split a UTF-8 character; decode only complete frames.
+                buffer += data
+                if separator not in buffer:
                     continue
-                parts = buffer.split(LAN_FRAME_SEPARATOR)
+                parts = buffer.split(separator)
                 buffer = parts.pop()
-                for payload in decode_lan_frames(LAN_FRAME_SEPARATOR.join(parts)):
+                for payload in decode_lan_frames(separator.join(parts)):
                     self._health.received_count += 1
                     self._try_resolve_ack(payload)
                     # callback 异常隔离：不退出读取循环
@@ -331,6 +333,7 @@ class LanGatewayRuntime:
                 await self._close_writer()
                 try:
                     await self._connect()
+                    await self.async_get_topology()
                     _LOGGER.info("LAN gateway reconnected successfully")
                     self._reader_task = asyncio.create_task(self._read_loop())
                     return
