@@ -4,6 +4,10 @@ All notable changes to the Yeelight Pro integration will be documented in this f
 
 ## [Unreleased]
 
+## [1.0.5.post2] - 2026-11-04
+
+Fork-only release of the LAN recovery and runtime hardening fixes submitted in upstream PR #3.
+
 ### Fixed
 
 - Buffer LAN messages as bytes until a complete frame arrives, so TCP reads
